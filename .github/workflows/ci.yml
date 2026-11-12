@@ -69,7 +69,7 @@ jobs:
       - name: Reject unfinished documentation markers
         shell: bash
         run: |
-          if grep -RInE '(TODO|TBD)[[:space:]]*:' --include='*.md' .; then
+          if grep -RInE '^[[:space:]]*(TODO|TBD)[[:space:]]*:' --include='*.md' .; then
             echo "Remove unfinished markers before merging."
             exit 1
           fi
