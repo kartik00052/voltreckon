@@ -1,0 +1,48 @@
+name: Change proposal
+description: Propose a research, architecture, scope, or implementation change
+title: "[Proposal]: "
+labels: ["proposal", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or engineering problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Research
+        - Architecture
+        - Database or financial model
+        - API
+        - Security
+        - Operations
+        - Testing
+        - Application code
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope checks
+      options:
+        - label: This does not add consumer-app, CSMS, roaming-hub, payment, or tax-filing scope without an ADR.
+          required: true
+        - label: This does not add Kafka, Redis, Kubernetes, Spring Batch, or AI without measured justification.
+          required: true

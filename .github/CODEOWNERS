@@ -1,0 +1,5 @@
+# Code owners are intentionally not configured yet.
+#
+# Add a rule with a real GitHub username or team before enabling
+# "Require review from Code Owners" in branch protection. Do not add
+# placeholder handles: GitHub will silently fail to match them.

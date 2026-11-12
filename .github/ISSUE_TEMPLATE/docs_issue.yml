@@ -1,0 +1,40 @@
+name: Documentation or blueprint issue
+description: Report a broken link, incorrect claim, inconsistency, or unclear design
+title: "[Docs]: "
+labels: ["documentation", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report security vulnerabilities here. Follow SECURITY.md.
+        Do not include secrets, personal data, or production records.
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: File path, section, or diagram
+      placeholder: docs/architecture/database-design.md, section 5
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or unclear?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or correction
+      description: Link a primary source when correcting a factual claim
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I have not included secrets or personal data.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

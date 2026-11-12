@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    name: Documentation and contract checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            README.md
+            CONTRIBUTING.md
+            LICENSE
+            SECURITY.md
+            CHANGELOG.md
+            CODE_OF_CONDUCT.md
+            docs/research/industry-analysis.md
+            docs/research/india-ev-ecosystem.md
+            docs/research/competitor-analysis.md
+            docs/research/standards-research.md
+            docs/research/resource-library.md
+            docs/architecture/system-context.md
+            docs/architecture/architecture-overview.md
+            docs/architecture/module-boundaries.md
+            docs/architecture/database-design.md
+            docs/architecture/security-architecture.md
+            docs/architecture/deployment-architecture.md
+            docs/adr/0001-architecture-style.md
+            docs/adr/0002-database-strategy.md
+            docs/adr/0003-financial-model.md
+            docs/adr/0004-messaging-strategy.md
+          )
+          for file in "${required[@]}"; do
+            test -f "$file" || { echo "Missing required file: $file"; exit 1; }
+          done
+
+      - name: Reject unfinished documentation markers
+        shell: bash
+        run: |
+          if grep -RInE '(TODO|TBD)[[:space:]]*:' --include='*.md' .; then
+            echo "Remove unfinished markers before merging."
+            exit 1
+          fi
+
+      - name: Check local Markdown links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --offline --no-progress --accept 200,206,429 './**/*.md'
+          fail: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Lint OpenAPI
+        run: npx --yes @redocly/cli@latest lint docs/api/openapi.yaml --format=stylish
+
+  java:
+    name: Java build and tests
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('backend/pom.xml') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Verify
+        working-directory: backend
+        run: mvn -B verify
