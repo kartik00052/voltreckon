@@ -38,3 +38,10 @@ dist/
 build/
 out/
 coverage/
+
+# VoltReckon scaffold
+backend/**/target/
+frontend/node_modules/
+frontend/dist/
+data/raw/*
+!data/raw/.gitkeep

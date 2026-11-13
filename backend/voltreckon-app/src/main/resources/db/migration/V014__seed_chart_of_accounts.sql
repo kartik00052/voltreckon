@@ -1,0 +1,2 @@
+-- V014__seed_chart_of_accounts.sql
+-- TODO: derive from docs/database/schema.sql (keep one module's tables per file).

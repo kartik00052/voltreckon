@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.voltreckon</groupId>
+  <artifactId>voltreckon-parent</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>VoltReckon</name>
+
+  <modules>
+    <module>voltreckon-ocpi-model</module>
+    <module>voltreckon-app</module>
+    <module>voltreckon-simulator</module>
+  </modules>
+
+  <properties>
+    <!-- Use the JDK you have installed (21 or 25). -->
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <!-- TODO: import the Spring Boot BOM in dependencyManagement (check spring.io for the
+       current 4.x version), then pin plugins: surefire, failsafe, jacoco, checkstyle,
+       spotbugs, flyway, spring-boot-maven-plugin. -->
+</project>

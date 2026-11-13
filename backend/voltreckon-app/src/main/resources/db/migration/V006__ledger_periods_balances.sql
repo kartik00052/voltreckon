@@ -1,0 +1,2 @@
+-- V006__ledger_periods_balances.sql
+-- TODO: derive from docs/database/schema.sql (keep one module's tables per file).

@@ -1,0 +1,2 @@
+-- V004__ingestion.sql
+-- TODO: derive from docs/database/schema.sql (keep one module's tables per file).

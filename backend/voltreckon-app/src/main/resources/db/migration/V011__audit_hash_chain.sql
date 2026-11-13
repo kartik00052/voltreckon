@@ -1,0 +1,2 @@
+-- V011__audit_hash_chain.sql
+-- TODO: derive from docs/database/schema.sql (keep one module's tables per file).

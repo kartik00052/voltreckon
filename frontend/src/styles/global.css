@@ -1,0 +1,7 @@
+@import './tokens.css';
+@import './reset.css';
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+}
