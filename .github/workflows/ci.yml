@@ -19,7 +19,7 @@ jobs:
     outputs:
       backend: ${{ steps.check.outputs.backend }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: check
         shell: bash
         run: |
@@ -33,7 +33,7 @@ jobs:
     name: Documentation and contract checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Verify required files
         shell: bash
@@ -93,7 +93,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.backend == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
