@@ -122,9 +122,9 @@ Flyway V001 applied; architecture and Testcontainers tests pass.
 
 **Docs:** Batch 1 committed at `644014e` (README, scope, glossary, architecture, ADRs
 0000–0012, references). Batch 2 committed at `c089207` (data model, financial model, OCPI,
-GST, API, security). Batch 3 authored (thirteen module specs plus ADR-0013) and committed in
-the Batch 3 commit. Batch 4 still pending; links to later files are expected to resolve only
-after Batch 4.
+GST, API, security). Batch 3 committed at `2523d33` (thirteen module specs plus ADR-0013).
+Batch 4 is committed in this docs commit; all fifteen docs and thirteen module specs exist,
+and all local links resolve.
 
 **Open decisions:**
 
@@ -146,6 +146,9 @@ after Batch 4.
 - Add `backend/voltreckon-app/src/main/resources/openapi/openapi.yaml` before the first
   endpoint.
 - Change Actuator exposure from `health,info` to `health` only.
+- Fix the `-Pquality` Checkstyle config path: the parent `config.dir` resolves to
+  `../config/checkstyle/checkstyle.xml` outside `backend/`; the configs are under
+  `backend/config/`. Recorded in docs 12 and 13; not fixed in the docs task.
 - Extend `ArchitectureTests` with the full dependency graph and sink rules.
 - Add V002–V017 in roadmap order; never edit an applied migration.
 
@@ -206,24 +209,43 @@ after Batch 4.
   `12-engineering-standards.md`, `13-build-and-operations.md`, `14-roadmap.md`, and
   `15-agent-workflow.md`.
 
+### 2026-11-13 - Docs Batch 4
+
+- Authored `10-testing-strategy.md` (`TEST-001`–`TEST-055`),
+  `11-simulator-and-data.md` (`SIM-001`–`SIM-036`),
+  `12-engineering-standards.md` (`ENG-001`–`ENG-052`),
+  `13-build-and-operations.md` (`OPS-001`–`OPS-048`), `14-roadmap.md`, and
+  `15-agent-workflow.md` (`AGENT-001`–`AGENT-031`).
+- Verified versions against the build: Boot 4.1.2, Spring Modulith 2.1.0, Spring
+  Modulith Events JPA 2.1.0, springdoc 3.0.3, Flyway 12.4.0, PostgreSQL JDBC
+  42.7.14, Testcontainers 2.0.5, PostgreSQL 18, JaCoCo 0.8.15, Enforcer 3.6.3,
+  Checkstyle plugin 3.6.0/engine 13.4.2, and SpotBugs 4.9.8.3.
+- Recorded current reality instead of target state: only `ArchitectureTests` and
+  `WalkingSkeletonIT` have executable assertions; simulator scenarios, seeds, and
+  Java classes are scaffolds; `application-prod.yml` and `application-test.yml` are
+  placeholders; Actuator still exposes `health,info`; OpenAPI is absent.
+- Checked all six files for the fixed headings, unique sequential rule IDs, resolving
+  local links, Given/When/Then scenarios, balanced fences, and no SQL DDL. Batch 4 adds
+  222 rules; the docs now contain 627 unique definitions.
+- CI still uses Java 21 in `backend-ci.yml` but Java 25 in `ci.yml`/`codeql.yml`; the
+  docs CI job still names stale paths and the old OpenAPI location. Reported only.
+- Verified `mvn -B -f backend/pom.xml validate` and `verify` green on 2026-11-14; the
+  default build ran on local Java 27 with `--release 21`, 2 unit and 2 integration tests.
+  `verify -Pquality` fails in the parent on the missing Checkstyle config path; recorded,
+  not fixed.
+- Next: separate final docs commit to reconcile `README.md`; do not push Batches 1–4.
+
 ## NEXT SCOPE prompt
 
 ```text
-Continue the VoltReckon docs-only task. Read docs/README.md, docs/01-product-scope.md,
-docs/02-glossary.md, docs/03-architecture.md, docs/04-data-model.md,
-docs/05-financial-model.md, docs/06-ocpi-integration.md, docs/07-gst-and-compliance.md,
-docs/08-api-standards.md, docs/09-security.md, the thirteen docs/modules specs, the ADRs,
-references.md, and this file first. Then complete Batch 4 exactly:
-- docs/10-testing-strategy.md
-- docs/11-simulator-and-data.md
-- docs/12-engineering-standards.md
-- docs/13-build-and-operations.md
-- docs/14-roadmap.md
-- docs/15-agent-workflow.md
-Use the rule prefixes in docs/README.md (TEST, SIM, ENG, OPS, AGENT). Do not edit backend/,
-frontend/, compose.yaml, LICENSE, workflows, or README.md. Do not write SQL DDL in docs. Use
-Mermaid only, [ASSUMPTION] for unverified facts, and Given/When/Then acceptance scenarios.
-Grow references.md only when a new external claim needs a source. Update the daily log,
-commit Batch 4 with a conventional message, and do not push. Stop before the separate final
-README reconciliation commit.
+Continue the VoltReckon docs-only task. Read docs/README.md, all fifteen docs, the thirteen
+docs/modules specs, the ADRs, references.md, and this file first. Reconcile README.md with
+the implemented repository and the completed docs:
+- Replace the stale Java 25 claim with Java 21 and the verified build commands.
+- Remove the "no code" claim; describe the current walking skeleton and Phase 0 state.
+- Correct links, module names, and the OpenAPI location.
+- Keep the document concise and consistent with docs/README.md and this file.
+Do not edit backend/, frontend/, compose.yaml, LICENSE, or workflows. Do not change any
+accepted ADR or module rule. Do not write SQL DDL. Update the daily log, commit only the
+README reconciliation with a conventional message, and do not push.
 ```
