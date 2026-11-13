@@ -1,31 +1,81 @@
 # CLAUDE.md
 
 VoltReckon — settlement and reconciliation engine for EV-charging roaming.
-Modular monolith: OCPI CDR ingestion, double-entry ledger, GST invoicing, disputes, netting.
-`docs/` is the source of truth (ADRs 0001–0008, architecture, schema.sql, roadmap, testing).
+Modular monolith: OCPI CDR ingestion, rating, double-entry ledger, GST invoicing, disputes,
+reconciliation, netting, audit, and reporting. `docs/` is the build contract; code implements
+it, not the reverse.
 
-## Stack (verified against Maven Central, 2026-11)
-- Java 21 (parent compiles with `--release 21`; newer JDKs work locally).
-- Spring Boot 4.1.2 (parent BOM), Spring Modulith 2.1.0, PostgreSQL 18.
-- Maven 3.9+, modules: `voltreckon-ocpi-model`, `voltreckon-app`, `voltreckon-simulator`.
-- Boot 4 names: `spring-boot-starter-webmvc` (not `-web`), `spring-boot-starter-flyway`.
-- Testcontainers 2.x names: `testcontainers-postgresql`, `testcontainers-junit-jupiter`;
+## 1. Read this first
+
+- Start with [docs/README.md](docs/README.md) and the owning module spec.
+- Precedence: human prompt > accepted ADR > module spec > other docs > this file.
+- On a conflict, stop and report both rules. Money, tax, security, and module-boundary
+  conflicts always stop.
+- Do not reopen an accepted ADR silently. Add a new ADR if the decision must change.
+- This file is a session log and operational snapshot, never a decision source.
+
+## 2. Stack and versions
+
+- Java 21 source/bytecode (`--release 21`); newer local JDKs are allowed. Do not use Java 22+
+  language features in main code.
+- Spring Boot 4.1.2 (parent BOM), Spring Modulith 2.1.0, PostgreSQL 18, Maven 3.9+.
+- Boot 4 names: `spring-boot-starter-webmvc`, `spring-boot-starter-flyway`.
+- Testcontainers 2.x: `testcontainers-postgresql`, `testcontainers-junit-jupiter`;
   class `org.testcontainers.postgresql.PostgreSQLContainer`.
+- Modules: `voltreckon-ocpi-model`, `voltreckon-app`, `voltreckon-simulator`.
+- Versions are verified in [docs/13-build-and-operations.md](docs/13-build-and-operations.md)
+  and [docs/references.md](docs/references.md). Do not guess a version.
 
-## Module rules
-- Public API lives in `com.voltreckon.<module>`; everything else under `...<module>.internal`.
-- Never import another module's `internal` packages. Cross-module calls use the public API.
-- `ledger` is a leaf and depends on no domain module.
-- Domain code has no Spring/JPA/Jackson. Constructor injection; Java records; no Lombok.
-- No `float`/`double` for money: minor units + currency (ADR-0003). No Kafka/Redis/Spring Batch.
-- Flyway is forward-only; no Hibernate auto-DDL.
+## 3. Non-negotiable rules
 
-## Tests
-- Unit tests: `*Test` / `*Tests` (Surefire). Integration: `*IT` (Failsafe + Testcontainers).
-- Architecture rules live in `ArchitectureTests`; keep `ApplicationModules.verify()` green.
-- Integration tests must use real PostgreSQL (Testcontainers), never H2.
+- One deployable, one PostgreSQL database, one schema `voltreckon`.
+- Public API in `com.voltreckon.<module>`; implementation in `...<module>.internal`.
+  Never import another module's `internal` package.
+- `ledger` is a leaf and depends only on `shared`. `audit` and `reporting` are sinks.
+- Domain code has no Spring, JPA, Jackson, or Servlet. Constructor injection, records, no
+  Lombok.
+- Money is `long` minor units plus ISO 4217 currency. No `float`/`double` in money paths.
+- Issued financial rows are append-only; corrections are new rows, reversals, or credit
+  notes. Never update an issued invoice, journal, posting, rating result, or statement.
+- Financial document plus journal must be atomic. Post through a synchronous public command,
+  not an asynchronous event.
+- Events use the transactional outbox and at-least-once delivery; consumers are idempotent.
+- Flyway is forward-only. No Hibernate auto-DDL. One migration = one module = one phase.
+- No Kafka, Redis, Spring Batch, jqwik, microservices, or AI in the T1 financial path.
+- Do not add a runtime dependency without an ADR.
 
-## Build
+## 4. Architecture
+
+The dependency graph and layer rules are in [docs/03-architecture.md](docs/03-architecture.md)
+and [ADR-0007](docs/adr/0007-module-set-and-dependencies.md). Summary:
+
+```text
+shared <- platform <- iam / partners / tariff / ingestion / rating / billing /
+          dispute / reconciliation / settlement
+ledger <- shared only
+audit, reporting <- sinks
+```
+
+- Cross-module synchronous work: public command, caller's transaction.
+- Cross-module asynchronous work: public event, outbox, `processed_event`.
+- Reporting is the only module allowed to read domain tables, through read-only `rpt_*`
+  views. All other cross-module reads use public query APIs.
+- Every table has one owning module. The module spec and migration header name it.
+
+## 5. Money, tax, and time invariants
+
+- Round per line with HALF_UP, then sum. Use `BigDecimal` only for intermediate tax math
+  with an explicit scale; persist minor units.
+- GST rates and effective dates are configuration, never hard-coded. EV charging is treated
+  as SAC 998714 at 18% for the cited AAR; this is not legal advice.
+- Instants are UTC (`timestamptz`); business dates are Asia/Kolkata. Inject `Clock`; never
+  call `Instant.now`, `LocalDate.now`, or `System.currentTimeMillis` outside `platform`.
+- Entity IDs are UUIDv4. `bigserial` is for internal append-only ordering only.
+- Every state-changing request uses an idempotency key; a replay returns the original result.
+- Errors are RFC 9457 `application/problem+json` with a stable `code`.
+
+## 6. Commands
+
 ```bash
 mvn -B -f backend/pom.xml validate
 mvn -B -f backend/pom.xml verify          # needs Docker
@@ -35,7 +85,89 @@ SPRING_PROFILES_ACTIVE=local mvn -f backend/voltreckon-app spring-boot:run
 curl http://localhost:8080/actuator/health   # {"status":"UP"}
 ```
 
-## Working agreements
-- Read the relevant ADR/architecture doc before changing behaviour.
-- Smallest change; no speculative abstractions or new runtime dependencies without an ADR.
-- Do not edit `docs/`, `LICENSE`, or `.github/workflows` without being asked.
+- Unit tests: `*Test`/`*Tests` (Surefire). Integration: `*IT` (Failsafe + Testcontainers).
+- Integration tests use real PostgreSQL, never H2.
+- `ArchitectureTests` and `ApplicationModules.verify()` must stay green.
+- After any build, run `mvn clean` before trusting `target/`; never infer source state from
+  generated output.
+
+## 7. Repository map
+
+| Path | Purpose |
+|---|---|
+| `docs/` | Contract: scope, architecture, data, money, OCPI, GST, API, security, testing, modules, ADRs. |
+| `docs/modules/` | One spec per module with the fixed fifteen headings. |
+| `docs/adr/` | Accepted decisions; do not edit an accepted ADR in place. |
+| `backend/voltreckon-app/` | Boot app, Flyway migrations, OpenAPI file, integration tests. |
+| `backend/voltreckon-ocpi-model/` | Pure OCPI model; no Spring. |
+| `backend/voltreckon-simulator/` | Synthetic partner and fault generator. |
+| `compose.yaml` | PostgreSQL 18; volume is `/var/lib/postgresql` (PG18 layout). |
+| `README.md` | Human entry point; reconciled only in the final docs commit. |
+
+## 8. Current state, open items, and code follow-ups
+
+**Phase 0:** complete and pushed to `origin/main` at `5153cc2`. Build green; health 200;
+Flyway V001 applied; architecture and Testcontainers tests pass.
+
+**Docs:** Batch 1 authored (README, scope, glossary, architecture, ADRs 0000–0012,
+references). Batch 2–4 still pending; links to later files are expected to resolve only
+after Batch 4.
+
+**Open decisions:**
+
+- Exact e-invoice AATO threshold, IRN/QR rules, and DPDP commencement dates need primary
+  sources before Phase 5. Do not invent them.
+- CI uses Java 21 in `backend-ci.yml` but Java 25 in `ci.yml`/`codeql.yml`. Align to 21 in a
+  separate change; do not edit workflows in the docs task.
+- `LICENSE` says MIT © 2026 Kartik Sharma. The user identifies as Akshit Sharma. Report,
+  do not edit.
+- `README.md` is stale (Java 25, “no code”, old links). Reconcile in the final separate
+  docs commit.
+
+**Code follow-ups after docs:**
+
+- Add the `rating` package/module before Phase 3.
+- Add public `AuditApi`, `ReconciliationApi`, and `ReportingApi` in their phases.
+- Add `backend/voltreckon-app/src/main/resources/openapi/openapi.yaml` before the first
+  endpoint.
+- Change Actuator exposure from `health,info` to `health` only.
+- Extend `ArchitectureTests` with the full dependency graph and sink rules.
+- Add V002–V017 in roadmap order; never edit an applied migration.
+
+## 9. Daily log
+
+### 2026-11-13 — Phase 0 (backfilled)
+
+- Implemented real Boot entry point, child dependencies, env-driven local config, V001
+  baseline, architecture tests, and Testcontainers walking skeleton.
+- Fixed PostgreSQL 18 Compose volume from `/var/lib/postgresql/data` to
+  `/var/lib/postgresql`; verified healthy container and health 200.
+- `mvn -B -f backend/pom.xml verify` green; 7 commits pushed to `origin/main`.
+
+### 2026-11-13 — Docs Batch 1
+
+- Audited old docs against the brief; recorded conflicts: stale README, Java 21 vs 25 CI,
+  LICENSE holder, old module names, old ADRs/jqwik, missing `rating`.
+- Verified OCPI editions: 2.2.1 (2021-10-06), 2.3.0 (2025-02-21), 2.3.0-ed2 (2026-06-18,
+  adds Invoice Reconciliation). CDR credit fields already exist in 2.2.1.
+- Authored `docs/README.md`, `01-product-scope.md`, `02-glossary.md`,
+  `03-architecture.md`, `references.md`, and ADRs `0000`–`0012`.
+- Next: Batch 2 — data model, financial model, OCPI, GST, API standards, security.
+
+## NEXT SCOPE prompt
+
+```text
+Continue the VoltReckon docs-only task. Read docs/README.md, docs/01-product-scope.md,
+docs/02-glossary.md, docs/03-architecture.md, the ADRs, and this file first. Then complete
+Batch 2 exactly:
+- docs/04-data-model.md
+- docs/05-financial-model.md
+- docs/06-ocpi-integration.md
+- docs/07-gst-and-compliance.md
+- docs/08-api-standards.md
+- docs/09-security.md
+Grow docs/references.md with primary sources. Do not edit backend/, frontend/, compose.yaml,
+LICENSE, workflows, or README.md. Do not write SQL DDL in docs. Use unique rule IDs, Mermaid
+only, [ASSUMPTION] for unverified facts, and Given/When/Then acceptance scenarios. Update the
+daily log, commit Batch 2 with a conventional message, and do not push. Stop before Batch 3.
+```

@@ -1,94 +1,120 @@
 # VoltReckon documentation
 
-This directory is the engineering and research record for VoltReckon. It is written to be read in order by a new contributor and used as a reference by an implementer.
+- **Status:** Draft
+- **Owner:** VoltReckon maintainer
+- **Last verified:** 2026-11-13
+- **Applies to phases:** 0–10
 
-**Documentation status:** blueprint v0.1 (November 2026). The application is not implemented. Every "Planned" label in the root README refers to work described here, not to shipped code.
+This folder is the contract for building the VoltReckon backend. Code implements these
+documents; the documents do not describe aspirational code. If code and docs disagree,
+the human prompt wins, then an ADR, then a module spec, then other docs. Stop and report
+the conflict instead of silently choosing.
 
-**License:** MIT, copyright © 2026 Kartik Sharma. See [LICENSE](../LICENSE).
+## Reading order
 
-## Start here
+1. [01-product-scope.md](01-product-scope.md) — who this is for and what is in each tier.
+2. [02-glossary.md](02-glossary.md) — vocabulary used by every other file.
+3. [03-architecture.md](03-architecture.md) — module graph, layering, transactions, events.
+4. [04-data-model.md](04-data-model.md) — tables, constraints, migration order.
+5. [05-financial-model.md](05-financial-model.md) — accounts, postings, rounding, proofs.
+6. [06-ocpi-integration.md](06-ocpi-integration.md) — OCPI fields and ingestion rules.
+7. [07-gst-and-compliance.md](07-gst-and-compliance.md) — GST, e-invoice, DPDP.
+8. [08-api-standards.md](08-api-standards.md) — REST contract, errors, idempotency.
+9. [09-security.md](09-security.md) — authn/authz, maker-checker, threats.
+10. [10-testing-strategy.md](10-testing-strategy.md) — what proves each rule.
+11. [11-simulator-and-data.md](11-simulator-and-data.md) — synthetic data and faults.
+12. [12-engineering-standards.md](12-engineering-standards.md) — Java/Spring conventions.
+13. [13-build-and-operations.md](13-build-and-operations.md) — versions, commands, profiles.
+14. [14-roadmap.md](14-roadmap.md) — phases, migrations, endpoints, exit criteria.
+15. [15-agent-workflow.md](15-agent-workflow.md) — how a coding agent must operate.
+16. [references.md](references.md) — every external source and what it supports.
+17. [modules/](modules/) — one spec per module, same fifteen headings.
+18. [adr/](adr/) — decisions that may not be reopened silently.
 
-| If you want to... | Read |
+## Precedence
+
+| Rank | Source | Rule |
+|---|---|---|
+| 1 | Current human prompt | Overrides everything for the current task. |
+| 2 | Accepted ADR | A conflicting change needs a new ADR, not an edit in place. |
+| 3 | Module spec | Owns that module's behaviour and allowed dependencies. |
+| 4 | Other docs | Explain and link; must not contradict higher ranks. |
+| 5 | `CLAUDE.md` | Session log and operational snapshot; never a decision source. |
+
+On conflict: stop, quote both rules, propose the smallest resolution, and wait.
+Money, tax, security, and module-boundary conflicts always stop.
+
+## Status and verification legend
+
+| Marker | Meaning |
 |---|---|
-| Understand whether the project is worth building | [Executive assessment](00-executive-assessment.md) |
-| See the evidence behind the problem | [Industry analysis](research/industry-analysis.md) |
-| Understand the Indian market and UBC | [India EV ecosystem](research/india-ev-ecosystem.md) |
-| Know who else solves this | [Competitor analysis](research/competitor-analysis.md) |
-| Check standards and tax claims | [Standards research](research/standards-research.md) |
-| Review the system boundary | [System context](architecture/system-context.md) |
-| Review the architecture | [Architecture overview](architecture/architecture-overview.md) |
-| See the module boundaries | [Module boundaries](architecture/module-boundaries.md) |
-| Read the database design | [Database design](architecture/database-design.md) and [schema.sql](database/schema.sql) |
-| Understand money and ledger rules | [Financial domain design](database/02-financial-model.md) |
-| Review security | [Security architecture](architecture/security-architecture.md) |
-| Review deployment and operations | [Deployment architecture](architecture/deployment-architecture.md) |
-| Use the API contract | [API design](api/01-api-design.md) and [openapi.yaml](api/openapi.yaml) |
-| Plan the build | [Implementation roadmap](roadmap/01-implementation-roadmap.md) |
-| Create GitHub issues | [Milestone and issue breakdown](roadmap/02-issues.md) |
-| Learn the required topics | [Resource library](research/resource-library.md) |
-| Operate the system | [Runbook](operations/01-runbook.md) |
-| Read the hard criticism | [Principal engineer review](reviews/principal-review.md) |
+| **Status: Draft** | Complete enough to build from; may change through a reviewed commit. |
+| **Status: Approved** | The maintainer accepted it for the current phase. |
+| **Status: Superseded** | Kept for history; a newer document or ADR wins. |
+| `[ref-N]` | Claim backed by an entry in [references.md](references.md). |
+| `[ASSUMPTION]` | Not verified from a primary source; cannot be the only basis of a MUST. |
+| **Verified** | The rule has an automated check named in the file. |
+| **Review** | The rule is checked by a named review step, not by code. |
 
-## Research
+## Normative rules
 
-| Document | Contents |
+Every MUST/MUST NOT/SHOULD has a unique ID: `PREFIX-NNN`. Prefixes are owned by files.
+
+| Prefix | Owner | Prefix | Owner |
+|---|---|---|---|
+| `PROD` | 01-product-scope | `GST` | 07-gst-and-compliance |
+| `ARCH` | 03-architecture | `API` | 08-api-standards |
+| `DATA` | 04-data-model | `SEC` | 09-security |
+| `MONEY` | 05-financial-model | `TEST` | 10-testing-strategy |
+| `EVENT` | 03-architecture | `SIM` | 11-simulator-and-data |
+| `OCPI` | 06-ocpi-integration | `ENG` | 12-engineering-standards |
+| `OPS` | 13-build-and-operations | `AGENT` | 15-agent-workflow |
+| `SHARED`, `PLAT`, `IAM`, `PART`, `ING`, `TAR`, `RATE`, `LEDG`, `BILL`, `DISP`, `SETL`, `RECN`, `AUD`, `RPT` | matching module spec | `ADR` | ADRs |
+
+Rule IDs are never reused. Deleting a rule also deletes its ID; a replacement gets a new ID.
+Every rule states how it is checked in the owning file's table or text.
+
+## Document map
+
+| File | Answers |
 |---|---|
-| [industry-analysis.md](research/industry-analysis.md) | Global charging ecosystem, CPO/eMSP economics, failure modes, existing approaches, opportunity, sources |
-| [india-ev-ecosystem.md](research/india-ev-ecosystem.md) | Indian market, CPO/eMSP models, UEI/UBC, payments, GST/e-invoicing, data flows |
-| [competitor-analysis.md](research/competitor-analysis.md) | Roaming hubs, CPMS vendors, Indian platforms, accounting software, capability matrix, positioning |
-| [standards-research.md](research/standards-research.md) | OCPI/OCPP/UBC/Beckn, GST, e-invoicing, DPDP, retention, implementation impact |
-| [resource-library.md](research/resource-library.md) | 24-category learning library, verified URLs, open-source projects to study |
+| 01 | Which users, which tier, which success measures. |
+| 02 | What a CDR, CPO, eMSP, tariff version, netting, IRN, SAC mean here. |
+| 03 | Which module may call which, how transactions and events work, how IDs work. |
+| 04 | Which module owns which table, column type, constraint, index, migration. |
+| 05 | Which accounts, which debit/credit per event, rounding, period close, proofs. |
+| 06 | Which OCPI fields are consumed, how Credit CDRs map, validation catalogue. |
+| 07 | Configurable GST, SAC, place of supply, IRN rules, DPDP minimisation. |
+| 08 | Paths, payloads, error codes, idempotency, pagination, authz per endpoint. |
+| 09 | Roles, partner scoping, maker-checker, secrets, audit, ASVS checks. |
+| 10 | Test pyramid, naming, fixtures, invariant tests, quality gates. |
+| 11 | Seeded data, fault injection, scenario files, dataset licences. |
+| 12 | Java/Spring conventions, forbidden list, definition of done. |
+| 13 | Versions, commands, profiles, configuration keys, CI plan, runbook. |
+| 14 | Phase goals, modules, migrations, endpoints, events, tests, demos, exits. |
+| 15 | Agent session ritual, loop, stop conditions, commit and handoff rules. |
+| modules/ | Per-module contract using the fixed fifteen headings. |
+| adr/ | Irreversible or expensive decisions with alternatives and consequences. |
 
-## Architecture
+## How these documents change
 
-| Document | Contents |
-|---|---|
-| [system-context.md](architecture/system-context.md) | Actors, external systems, scope, trust boundaries, C4 Level 1, key data flows |
-| [architecture-overview.md](architecture/architecture-overview.md) | Style selection, module map, dependency rules, component and workflow diagrams, transactions, events |
-| [module-boundaries.md](architecture/module-boundaries.md) | Module responsibilities, owned data, use cases, events, invariants, failure modes, tests; evaluated non-modules |
-| [database-design.md](architecture/database-design.md) | Database selection, ER overview, table rationale, indexes, concurrency, isolation, migrations, financial integrity |
-| [security-architecture.md](architecture/security-architecture.md) | Authn/authz, tenancy, webhooks, audit, PII/DPDP, threat model, residual risks |
-| [deployment-architecture.md](architecture/deployment-architecture.md) | Local/production topology, packaging, configuration, migrations, CI/CD, observability, backups, DR |
-| [reliability.md](architecture/reliability.md) | Failure scenarios, retries, idempotency, outbox, recovery, monitoring |
-| [decisions.md](architecture/decisions.md) | Decision summary and links to ADRs |
-| [diagrams.md](architecture/diagrams.md) | Additional C4, module, workflow, ER, event, and deployment diagrams |
+- Behaviour change: update the owning module spec and, if a decision changes, add an ADR.
+  The code, docs, and ADR change in the same commit.
+- New table or column: update 04-data-model, the owning module spec, and the roadmap
+  phase; the Flyway migration is the source of truth for SQL.
+- New endpoint: update 08-api-standards and the module spec, then the OpenAPI file at
+  `backend/voltreckon-app/src/main/resources/openapi/openapi.yaml` (not in `docs/`).
+- New external fact: add it to [references.md](references.md) with URL, claim, and date.
+- Typo or link fix: direct commit. Normative edits: propose first when they touch money,
+  tax, security, or a module boundary.
 
-## Data, finance, and API
+## What is deliberately not here
 
-| Document | Contents |
-|---|---|
-| [database/schema.sql](database/schema.sql) | Reference PostgreSQL 18 DDL for the MVP; not yet executed |
-| [database/02-financial-model.md](database/02-financial-model.md) | Double-entry model, money representation, rounding, tax, netting, invariants |
-| [api/01-api-design.md](api/01-api-design.md) | Endpoint catalogue, examples, validation, errors, idempotency |
-| [api/openapi.yaml](api/openapi.yaml) | OpenAPI 3.1 MVP contract |
+No SQL DDL, no Java source, no OpenAPI YAML, no generated diagrams outside Mermaid, no
+frontend guide beyond the roadmap and API contract. Machine-readable artifacts live in
+the build tree so tools can validate them.
 
-## Delivery and operations
+## Owner and review
 
-| Document | Contents |
-|---|---|
-| [testing/01-strategy.md](testing/01-strategy.md) | Test pyramid, tooling, edge cases, CI split, quality goals |
-| [roadmap/01-implementation-roadmap.md](roadmap/01-implementation-roadmap.md) | Milestones for one developer, with definitions of done |
-| [roadmap/02-issues.md](roadmap/02-issues.md) | Ready-to-create GitHub issues per milestone |
-| [operations/01-runbook.md](operations/01-runbook.md) | Local operations, backup, migration, incident procedures |
-| [reviews/principal-review.md](reviews/principal-review.md) | Skeptical review, scope cuts, sign-off conditions |
-
-## ADRs
-
-Architecture decision records live in [adr/](adr/). Each ADR states context, decision, alternatives, consequences, and revisit triggers.
-
-- [0001 — Architecture style](adr/0001-architecture-style.md)
-- [0002 — Database strategy](adr/0002-database-strategy.md)
-- [0003 — Financial model](adr/0003-financial-model.md)
-- [0004 — Messaging strategy](adr/0004-messaging-strategy.md)
-- [0005 — OCPI 2.3.0 CDR + Invoice Reconciliation scope](adr/0005-ocpi-scope.md)
-- [0006 — No AI in financial decisions](adr/0006-ai-deferred.md)
-- [0007 — Complement UBC/UEI, do not rebuild them](adr/0007-ubc-positioning.md)
-- [0008 — Redis and Spring Batch deferred](adr/0008-defer-redis-batch.md)
-
-## Conventions
-
-- **Fact vs. inference:** standards and regulatory claims cite an official or reputable source. Market claims are labelled as vendor-reported or secondary reporting where appropriate.
-- **No invented integrations:** if an interface is not publicly documented (for example, UBC onboarding), the document says so and treats it as Phase 2.
-- **No fake status:** diagrams and tables describe the intended implementation. The status table in the root README is authoritative.
-- **Links:** every URL in the resource library was checked on 12 November 2026. Re-check before citing in a new context. The library records rejected URLs.
-- **Copyright:** the project is MIT-licensed under `Copyright (c) 2026 Kartik Sharma`. Individual documents do not repeat a copyright header.
+The maintainer owns every file. A document becomes **Approved** only after the maintainer
+accepts it. Until then, use it as a build contract but expect review comments.
