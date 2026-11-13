@@ -38,7 +38,7 @@
     <springdoc.version>3.0.3</springdoc.version>
 
     <!-- Build plugin versions (surefire, failsafe, compiler are managed by Spring Boot) -->
-    <enforcer.plugin.version>3.6.3</enforcer.plugin.version>
+    <enforcer.plugin.version>3.7.0</enforcer.plugin.version>
     <jacoco.version>0.8.15</jacoco.version>
     <checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
     <checkstyle.version>13.4.2</checkstyle.version>
