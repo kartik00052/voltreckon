@@ -1,3 +1,25 @@
 spring:
   application:
     name: voltreckon
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: voltreckon
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    schemas: voltreckon
+    default-schema: voltreckon
+    create-schemas: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never

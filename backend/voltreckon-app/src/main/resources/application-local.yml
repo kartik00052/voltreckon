@@ -1,1 +1,7 @@
-# TODO: application-local.yml
+# Local profile: connection details come from the environment (see .env.example).
+# Defaults match compose.yaml so `docker compose up -d postgres` works with no .env file.
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:voltreckon}
+    username: ${POSTGRES_USER:voltreckon}
+    password: ${POSTGRES_PASSWORD:voltreckon_local_only}
