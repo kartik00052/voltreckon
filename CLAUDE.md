@@ -109,14 +109,17 @@ curl http://localhost:8080/actuator/health   # {"status":"UP"}
 **Phase 0:** complete and pushed to `origin/main` at `5153cc2`. Build green; health 200;
 Flyway V001 applied; architecture and Testcontainers tests pass.
 
-**Docs:** Batch 1 authored (README, scope, glossary, architecture, ADRs 0000–0012,
-references). Batch 2–4 still pending; links to later files are expected to resolve only
-after Batch 4.
+**Docs:** Batch 1 committed at `644014e` (README, scope, glossary, architecture, ADRs
+0000–0012, references). Batch 2 authored (data model, financial model, OCPI, GST, API,
+security) and pending commit. Batch 3–4 still pending; links to later files are expected to
+resolve only after Batch 4.
 
 **Open decisions:**
 
-- Exact e-invoice AATO threshold, IRN/QR rules, and DPDP commencement dates need primary
-  sources before Phase 5. Do not invent them.
+- The ₹5 crore e-invoice AATO threshold is pinned to Notification 10/2023-Central Tax
+  (`ref-17`). Exact B2C place-of-supply treatment, IRN/QR schema rules, and DPDP
+  commencement dates still need primary-source or tax-review confirmation before Phase 5.
+  Do not invent them.
 - CI uses Java 21 in `backend-ci.yml` but Java 25 in `ci.yml`/`codeql.yml`. Align to 21 in a
   separate change; do not edit workflows in the docs task.
 - `LICENSE` says MIT © 2026 Kartik Sharma. The user identifies as Akshit Sharma. Report,
@@ -154,20 +157,49 @@ after Batch 4.
   `03-architecture.md`, `references.md`, and ADRs `0000`–`0012`.
 - Next: Batch 2 — data model, financial model, OCPI, GST, API standards, security.
 
+### 2026-11-13 — Docs Batch 2
+
+- Authored `04-data-model.md`, `05-financial-model.md`, `06-ocpi-integration.md`,
+  `07-gst-and-compliance.md`, `08-api-standards.md`, `09-security.md`.
+- Corrected `PROD-001` to allow an audited platform-admin action naming its target partner,
+  and `PROD-010` to select the tariff version effective at session start. Updated the
+  `cdr.ingested.v1` payload wording to an external tariff reference.
+- Data model: `ledger`, `audit`, and `platform` have no domain foreign keys;
+  `agreement_tariff_link` is owned by `tariff`; disputes use a generic subject and do not
+  reference reconciliation; `event_publication` is Modulith-managed in V002.
+- Financial model: settlement records obligations but no cash movement in T1; netting is
+  signed from the CPO perspective; rating tax is provisional and billing is authoritative.
+- Pinned GST sources `ref-5`–`ref-8`, `ref-15`–`ref-17`, plus ASVS, OpenAPI, PostgreSQL,
+  Testcontainers, and Flyway references. B2C place of supply, IRN schema, and DPDP
+  commencement remain `[ASSUMPTION]`.
+- Next: Batch 3 — the thirteen module specs with the fixed fifteen headings.
+
 ## NEXT SCOPE prompt
 
 ```text
 Continue the VoltReckon docs-only task. Read docs/README.md, docs/01-product-scope.md,
-docs/02-glossary.md, docs/03-architecture.md, the ADRs, and this file first. Then complete
-Batch 2 exactly:
-- docs/04-data-model.md
-- docs/05-financial-model.md
-- docs/06-ocpi-integration.md
-- docs/07-gst-and-compliance.md
-- docs/08-api-standards.md
-- docs/09-security.md
-Grow docs/references.md with primary sources. Do not edit backend/, frontend/, compose.yaml,
-LICENSE, workflows, or README.md. Do not write SQL DDL in docs. Use unique rule IDs, Mermaid
-only, [ASSUMPTION] for unverified facts, and Given/When/Then acceptance scenarios. Update the
-daily log, commit Batch 2 with a conventional message, and do not push. Stop before Batch 3.
+docs/02-glossary.md, docs/03-architecture.md, docs/04-data-model.md,
+docs/05-financial-model.md, docs/06-ocpi-integration.md, docs/07-gst-and-compliance.md,
+docs/08-api-standards.md, docs/09-security.md, the ADRs, references.md, and this file first.
+Then complete Batch 3 exactly:
+- docs/modules/shared-platform.md
+- docs/modules/iam.md
+- docs/modules/partners.md
+- docs/modules/tariff.md
+- docs/modules/ingestion.md
+- docs/modules/rating.md
+- docs/modules/billing.md
+- docs/modules/dispute.md
+- docs/modules/reconciliation.md
+- docs/modules/settlement.md
+- docs/modules/ledger.md
+- docs/modules/audit.md
+- docs/modules/reporting.md
+Use the same fifteen headings in every file: Purpose, Scope, Public API, Domain model,
+Owned data, Invariants, Transactions, Events, Dependencies, Configuration, Errors, Security,
+Observability, Tests, Phase plan. Use the rule prefixes in docs/README.md. Do not edit
+backend/, frontend/, compose.yaml, LICENSE, workflows, or README.md. Do not write SQL DDL in
+docs. Use Mermaid only, [ASSUMPTION] for unverified facts, and Given/When/Then acceptance
+scenarios. Grow references.md only when a new external claim needs a source. Update the daily
+log, commit Batch 3 with a conventional message, and do not push. Stop before Batch 4.
 ```

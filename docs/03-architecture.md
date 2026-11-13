@@ -245,7 +245,7 @@ source document must be atomic with the journal. Use the synchronous command in 
 | `partners.partner.updated.v1` | partners | audit, reporting | partner id, changed fields |
 | `partners.agreement.activated.v1` | partners | audit, reporting | agreement id, parties, currency |
 | `tariff.tariff.published.v1` | tariff | rating, audit, reporting | tariff id, version, effective window |
-| `ingestion.cdr.ingested.v1` | ingestion | rating, audit, reporting | cdr id, partner id, session id, pinned tariff id |
+| `ingestion.cdr.ingested.v1` | ingestion | rating, audit, reporting | cdr id, partner id, session id, external tariff reference |
 | `ingestion.cdr.quarantined.v1` | ingestion | audit, reporting | cdr id, reason code |
 | `rating.rating.completed.v1` | rating | billing, audit, reporting | rating id, cdr id, totals |
 | `rating.rating.failed.v1` | rating | audit, reporting | rating id, cdr id, reason code |

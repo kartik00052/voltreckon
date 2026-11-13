@@ -30,7 +30,8 @@ management system, not a consumer app, not a roaming hub, and not a payment proc
 | Platform administrator | Operate users and access | Partner scoping, roles, least privilege |
 | Partner system (machine) | Push CDRs and read status | OCPI-compatible endpoints, idempotency, clear errors |
 
-**PROD-001** Every human action MUST execute inside exactly one partner scope.
+**PROD-001** Every partner-scoped human action MUST execute inside exactly one partner
+scope; a platform-administration action MUST name its target partner and be audited.
 *Check:* `ArchitectureTests` plus cross-tenant integration tests in every module.
 
 **PROD-002** A partner system MUST be able to ingest a CDR without a human session.
@@ -124,7 +125,7 @@ ingested, then it is quarantined with `DUPLICATE_CREDIT` and no ledger effect oc
 *Check:* `ingestion` credit IT.
 
 **PROD-010** Given a session, when rating runs after a tariff price change, then the result
-still uses the tariff version pinned at ingestion and the variance is recorded.
+still uses the tariff version effective at session start and the variance is recorded.
 *Check:* `rating` golden IT with a mutable clock.
 
 **PROD-011** Given an issued invoice, when a correction is needed, then a credit note is
