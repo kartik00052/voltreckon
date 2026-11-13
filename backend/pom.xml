@@ -34,7 +34,7 @@
     <java.version>21</java.version>
 
     <!-- Third-party versions not managed by the Spring Boot BOM -->
-    <spring-modulith.version>2.1.0</spring-modulith.version>
+    <spring-modulith.version>2.1.2</spring-modulith.version>
     <springdoc.version>3.0.3</springdoc.version>
 
     <!-- Build plugin versions (surefire, failsafe, compiler are managed by Spring Boot) -->
