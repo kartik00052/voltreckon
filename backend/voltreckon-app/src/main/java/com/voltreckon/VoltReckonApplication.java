@@ -1,7 +1,12 @@
 package com.voltreckon;
 
-// TODO: switch to @SpringBootApplication once the Spring Boot BOM and starters are in the pom.
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
 public class VoltReckonApplication {
+
     public static void main(String[] args) {
+        SpringApplication.run(VoltReckonApplication.class, args);
     }
 }
