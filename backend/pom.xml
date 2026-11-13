@@ -1,11 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
+  <!-- Spring Boot supplies sensible plugin management (compiler, surefire, failsafe, resources,
+       spring-boot-maven-plugin) and the dependency BOM. Bump within 4.1.x as patches ship. -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.2</version>
+    <relativePath/> <!-- resolve from the repository, not from ../pom.xml -->
+  </parent>
+
   <groupId>com.voltreckon</groupId>
   <artifactId>voltreckon-parent</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
+
   <name>VoltReckon</name>
+  <description>Settlement and reconciliation engine for EV-charging roaming:
+    OCPI CDR ingestion, double-entry ledger, GST invoicing, disputes and netting.</description>
 
   <modules>
     <module>voltreckon-ocpi-model</module>
@@ -14,12 +29,285 @@
   </modules>
 
   <properties>
-    <!-- Use the JDK you have installed (21 or 25). -->
-    <maven.compiler.release>21</maven.compiler.release>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- Spring Boot's parent turns this into maven.compiler.release. Use 25 if JDK 25 is installed
+         (also update setup-java in .github/workflows/backend-ci.yml and the enforcer rule below). -->
+    <java.version>21</java.version>
+
+    <!-- Third-party versions not managed by the Spring Boot BOM -->
+    <spring-modulith.version>2.1.0</spring-modulith.version>
+    <springdoc.version>3.0.3</springdoc.version>
+
+    <!-- Build plugin versions (surefire, failsafe, compiler are managed by Spring Boot) -->
+    <enforcer.plugin.version>3.6.3</enforcer.plugin.version>
+    <jacoco.version>0.8.15</jacoco.version>
+    <checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
+    <checkstyle.version>13.4.2</checkstyle.version>
+    <spotbugs.plugin.version>4.9.8.3</spotbugs.plugin.version>
+
+    <!-- Shared quality config lives in backend/config; every module sits one level below backend/ -->
+    <config.dir>${project.basedir}/../config</config.dir>
+
+    <!-- Raise as real tests arrive (0.60 -> 0.80). 0.00 keeps the empty scaffold buildable. -->
+    <jacoco.minimum.line>0.00</jacoco.minimum.line>
+
+    <!-- Must exist so surefire/failsafe can late-bind @{argLine}; JaCoCo fills it in when it runs. -->
+    <argLine></argLine>
   </properties>
 
-  <!-- TODO: import the Spring Boot BOM in dependencyManagement (check spring.io for the
-       current 4.x version), then pin plugins: surefire, failsafe, jacoco, checkstyle,
-       spotbugs, flyway, spring-boot-maven-plugin. -->
+  <dependencyManagement>
+    <dependencies>
+      <!-- Spring Modulith (not part of the Spring Boot BOM) -->
+      <dependency>
+        <groupId>org.springframework.modulith</groupId>
+        <artifactId>spring-modulith-bom</artifactId>
+        <version>${spring-modulith.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Internal modules: children declare these without a version -->
+      <dependency>
+        <groupId>com.voltreckon</groupId>
+        <artifactId>voltreckon-ocpi-model</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <!-- OpenAPI generation for the contract test against docs/api/openapi.yaml -->
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>${springdoc.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>${enforcer.plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>${jacoco.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>${checkstyle.plugin.version}</version>
+          <dependencies>
+            <dependency>
+              <groupId>com.puppycrawl.tools</groupId>
+              <artifactId>checkstyle</artifactId>
+              <version>${checkstyle.version}</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <configLocation>${config.dir}/checkstyle/checkstyle.xml</configLocation>
+            <includeTestSourceDirectory>true</includeTestSourceDirectory>
+            <consoleOutput>true</consoleOutput>
+            <failOnViolation>true</failOnViolation>
+            <violationSeverity>warning</violationSeverity>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>${spotbugs.plugin.version}</version>
+          <configuration>
+            <effort>Default</effort>
+            <threshold>Medium</threshold>
+            <excludeFilterFile>${config.dir}/spotbugs/exclude.xml</excludeFilterFile>
+            <failOnError>true</failOnError>
+          </configuration>
+        </plugin>
+
+        <!-- Manual use only (not bound to the lifecycle): the app runs Flyway on startup.
+             Example: mvn -pl voltreckon-app flyway:info -Dflyway.url=jdbc:postgresql://localhost:5432/voltreckon
+                      -Dflyway.user=... -Dflyway.password=... -->
+        <plugin>
+          <groupId>org.flywaydb</groupId>
+          <artifactId>flyway-maven-plugin</artifactId>
+          <version>${flyway.version}</version>
+          <configuration>
+            <locations>
+              <location>filesystem:${project.basedir}/src/main/resources/db/migration</location>
+            </locations>
+          </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.flywaydb</groupId>
+              <artifactId>flyway-database-postgresql</artifactId>
+              <version>${flyway.version}</version>
+            </dependency>
+            <dependency>
+              <groupId>org.postgresql</groupId>
+              <artifactId>postgresql</artifactId>
+              <version>${postgresql.version}</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <!-- Fail fast on the wrong Maven/JDK instead of with a confusing compiler error -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-build-environment</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>[3.9.0,)</version>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>[21,)</version>
+                </requireJavaVersion>
+                <banDuplicatePomDependencyVersions/>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Unit tests: *Test, *Tests (and *Properties for property-based tests, if adopted).
+           Integration tests (*IT, Testcontainers) run in failsafe during `verify`. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <argLine>@{argLine}</argLine>
+          <includes>
+            <include>**/*Test.java</include>
+            <include>**/*Tests.java</include>
+            <include>**/*Properties.java</include>
+          </includes>
+          <excludes>
+            <exclude>**/*IT.java</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <argLine>@{argLine}</argLine>
+          <includes>
+            <include>**/*IT.java</include>
+          </includes>
+          <!-- Test against compiled classes, not the repackaged Spring Boot jar -->
+          <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Coverage from unit + integration tests, merged into target/jacoco.exec -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/*Application.class</exclude>
+            <exclude>**/dto/**</exclude>
+            <exclude>**/package-info.class</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <id>jacoco-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>jacoco-report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>jacoco-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>${jacoco.minimum.line}</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- Static analysis, used in CI:  mvn -B -f backend/pom.xml verify -Pquality
+         Kept out of the default build so local iteration stays fast. -->
+    <profile>
+      <id>quality</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>checkstyle-check</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>spotbugs-check</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
