@@ -1,2 +1,0 @@
--- V013__iam.sql
--- TODO: derive from docs/database/schema.sql (keep one module's tables per file).

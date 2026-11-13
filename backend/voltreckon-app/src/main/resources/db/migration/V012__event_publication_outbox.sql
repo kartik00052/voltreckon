@@ -1,2 +1,0 @@
--- V012__event_publication_outbox.sql
--- TODO: derive from docs/database/schema.sql (keep one module's tables per file).

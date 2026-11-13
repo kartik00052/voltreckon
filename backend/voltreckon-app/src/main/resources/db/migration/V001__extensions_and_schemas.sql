@@ -1,2 +1,8 @@
 -- V001__extensions_and_schemas.sql
--- TODO: derive from docs/database/schema.sql (keep one module's tables per file).
+-- Baseline derived from docs/database/schema.sql: extensions and the single application schema.
+-- Phase 0 intentionally creates no business tables.
+-- btree_gist is required by later exclusion constraints (e.g. non-overlapping effective ranges).
+
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+CREATE SCHEMA IF NOT EXISTS voltreckon;
