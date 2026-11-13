@@ -46,15 +46,26 @@ it, not the reverse.
 
 ## 4. Architecture
 
-The dependency graph and layer rules are in [docs/03-architecture.md](docs/03-architecture.md)
-and [ADR-0007](docs/adr/0007-module-set-and-dependencies.md). Summary:
+The dependency graph and layer rules are in [docs/03-architecture.md](docs/03-architecture.md),
+[ADR-0007](docs/adr/0007-module-set-and-dependencies.md), and
+[ADR-0013](docs/adr/0013-iam-partner-and-billing-tariff-dependencies.md). Summary:
 
 ```text
-shared <- platform <- iam / partners / tariff / ingestion / rating / billing /
-          dispute / reconciliation / settlement
+shared <- platform
+platform <- partners, tariff, ingestion, rating, billing, dispute,
+            reconciliation, settlement
+partners <- iam, tariff, ingestion, rating, billing, dispute,
+            reconciliation, settlement
+tariff <- rating, billing
+ingestion <- rating, dispute, reconciliation
+rating <- billing, dispute, reconciliation
+billing <- dispute, reconciliation, settlement
 ledger <- shared only
 audit, reporting <- sinks
 ```
+
+The legal order is `shared`, `platform`, `partners`, `iam`, `tariff`, `ingestion`, `ledger`,
+`rating`, `billing`, `dispute`, `reconciliation`, `settlement`, `audit`, `reporting`.
 
 - Cross-module synchronous work: public command, caller's transaction.
 - Cross-module asynchronous work: public event, outbox, `processed_event`.
@@ -110,9 +121,10 @@ curl http://localhost:8080/actuator/health   # {"status":"UP"}
 Flyway V001 applied; architecture and Testcontainers tests pass.
 
 **Docs:** Batch 1 committed at `644014e` (README, scope, glossary, architecture, ADRs
-0000–0012, references). Batch 2 authored (data model, financial model, OCPI, GST, API,
-security) and pending commit. Batch 3–4 still pending; links to later files are expected to
-resolve only after Batch 4.
+0000–0012, references). Batch 2 committed at `c089207` (data model, financial model, OCPI,
+GST, API, security). Batch 3 authored (thirteen module specs plus ADR-0013) and committed in
+the Batch 3 commit. Batch 4 still pending; links to later files are expected to resolve only
+after Batch 4.
 
 **Open decisions:**
 
@@ -172,7 +184,27 @@ resolve only after Batch 4.
 - Pinned GST sources `ref-5`–`ref-8`, `ref-15`–`ref-17`, plus ASVS, OpenAPI, PostgreSQL,
   Testcontainers, and Flyway references. B2C place of supply, IRN schema, and DPDP
   commencement remain `[ASSUMPTION]`.
-- Next: Batch 3 — the thirteen module specs with the fixed fifteen headings.
+- Next: Batch 4 — testing, simulator, engineering, operations, roadmap, and agent workflow.
+
+### 2026-11-13 — Docs Batch 3
+
+- Authored the thirteen module specs, each with the same fifteen headings and its own rule
+  prefix: `shared-platform` (`SHARED`, `PLAT`), `iam`, `partners`, `tariff`, `ingestion`,
+  `rating`, `ledger`, `billing`, `dispute`, `reconciliation`, `settlement`, `audit`, and
+  `reporting`.
+- Resolved the Batch 2 boundary conflict with ADR-0013: `iam -> partners` for tenant
+  validation and suspension, `billing -> tariff` for effective-dated tax rates. Updated the
+  03 graph and legal order and the 04 FK matrix; ADR-0007 remains accepted for the module
+  set, ledger leaf, and sink rules.
+- Data-model follow-through: billing owns the invoice-level settlement hold that dispute sets
+  through a public command; reconciliation and settlement dispute subjects are opaque UUIDs
+  with no cross-module read.
+- Checked all 13 files for the fifteen headings, unique rule IDs (405 definitions), no
+  non-Markdown files under `docs/`, no SQL DDL, and resolving local links. Only the expected
+  Batch 4 links are unresolved.
+- Next: Batch 4 — `10-testing-strategy.md`, `11-simulator-and-data.md`,
+  `12-engineering-standards.md`, `13-build-and-operations.md`, `14-roadmap.md`, and
+  `15-agent-workflow.md`.
 
 ## NEXT SCOPE prompt
 
@@ -180,26 +212,18 @@ resolve only after Batch 4.
 Continue the VoltReckon docs-only task. Read docs/README.md, docs/01-product-scope.md,
 docs/02-glossary.md, docs/03-architecture.md, docs/04-data-model.md,
 docs/05-financial-model.md, docs/06-ocpi-integration.md, docs/07-gst-and-compliance.md,
-docs/08-api-standards.md, docs/09-security.md, the ADRs, references.md, and this file first.
-Then complete Batch 3 exactly:
-- docs/modules/shared-platform.md
-- docs/modules/iam.md
-- docs/modules/partners.md
-- docs/modules/tariff.md
-- docs/modules/ingestion.md
-- docs/modules/rating.md
-- docs/modules/billing.md
-- docs/modules/dispute.md
-- docs/modules/reconciliation.md
-- docs/modules/settlement.md
-- docs/modules/ledger.md
-- docs/modules/audit.md
-- docs/modules/reporting.md
-Use the same fifteen headings in every file: Purpose, Scope, Public API, Domain model,
-Owned data, Invariants, Transactions, Events, Dependencies, Configuration, Errors, Security,
-Observability, Tests, Phase plan. Use the rule prefixes in docs/README.md. Do not edit
-backend/, frontend/, compose.yaml, LICENSE, workflows, or README.md. Do not write SQL DDL in
-docs. Use Mermaid only, [ASSUMPTION] for unverified facts, and Given/When/Then acceptance
-scenarios. Grow references.md only when a new external claim needs a source. Update the daily
-log, commit Batch 3 with a conventional message, and do not push. Stop before Batch 4.
+docs/08-api-standards.md, docs/09-security.md, the thirteen docs/modules specs, the ADRs,
+references.md, and this file first. Then complete Batch 4 exactly:
+- docs/10-testing-strategy.md
+- docs/11-simulator-and-data.md
+- docs/12-engineering-standards.md
+- docs/13-build-and-operations.md
+- docs/14-roadmap.md
+- docs/15-agent-workflow.md
+Use the rule prefixes in docs/README.md (TEST, SIM, ENG, OPS, AGENT). Do not edit backend/,
+frontend/, compose.yaml, LICENSE, workflows, or README.md. Do not write SQL DDL in docs. Use
+Mermaid only, [ASSUMPTION] for unverified facts, and Given/When/Then acceptance scenarios.
+Grow references.md only when a new external claim needs a source. Update the daily log,
+commit Batch 4 with a conventional message, and do not push. Stop before the separate final
+README reconciliation commit.
 ```

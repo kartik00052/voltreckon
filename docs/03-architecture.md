@@ -56,16 +56,18 @@ Phase 0 scaffold has no package for it yet.
 ## 3. Dependency graph
 
 Arrows point from consumer to provider. The graph is acyclic and is the only legal
-cross-module direction.
+cross-module direction. [ADR-0013](adr/0013-iam-partner-and-billing-tariff-dependencies.md)
+adds the `iam -> partners` and `billing -> tariff` edges.
 
 ```mermaid
 flowchart TD
   shared[shared]
   platform[platform] --> shared
-  iam[iam] --> shared
-  iam --> platform
   partners[partners] --> shared
   partners --> platform
+  iam[iam] --> shared
+  iam --> platform
+  iam --> partners
   tariff[tariff] --> shared
   tariff --> platform
   tariff --> partners
@@ -81,6 +83,7 @@ flowchart TD
   billing[billing] --> shared
   billing --> platform
   billing --> partners
+  billing --> tariff
   billing --> rating
   billing --> ledger
   dispute[dispute] --> shared
@@ -113,7 +116,7 @@ Those edges are omitted from the diagram to keep it readable; they do not create
 because no domain module imports `audit` or `reporting`.
 
 **ARCH-005** A module MUST depend only on modules above it in this order:
-`shared`, `platform`, `iam`, `partners`, `tariff`, `ingestion`, `ledger`, `rating`,
+`shared`, `platform`, `partners`, `iam`, `tariff`, `ingestion`, `ledger`, `rating`,
 `billing`, `dispute`, `reconciliation`, `settlement`, `audit`, `reporting`.
 *Check:* `ArchitectureTests` encodes the table; `ApplicationModules.verify()` rejects cycles.
 

@@ -170,15 +170,16 @@ zero.
 
 | Table | Columns and constraints |
 |---|---|
-| `invoice` | `id uuid PK`; `invoice_no text NULL`; `issuer_partner_id`, `recipient_partner_id` FKs; `status` in `DRAFT`, `ISSUED`, `CANCELLED`, `PARTIALLY_CREDITED`, `FULLY_CREDITED`, `CLOSED`; `currency char(3)`; `subtotal_minor`, `tax_minor`, `total_minor bigint >= 0`; `period_start`, `period_end`, `issue_date`, `due_date date`; `place_of_supply_state char(2)`; `gstin_issuer`, `gstin_recipient varchar(15)`; `financial_year varchar(7)`; `e_invoice_status` in `NOT_REQUIRED`, `PENDING`, `REGISTERED`, `FAILED`; `irn char(64) NULL`, `ack_no text`, `ack_date date`, `qr_payload_hash char(64)`; `created_at`, `updated_at`, `issued_at`; checks totals, parties differ, period; partial unique invoice number. |
+| `invoice` | `id uuid PK`; `invoice_no text NULL`; `issuer_partner_id`, `recipient_partner_id` FKs; `status` in `DRAFT`, `ISSUED`, `CANCELLED`, `PARTIALLY_CREDITED`, `FULLY_CREDITED`, `CLOSED`; `currency char(3)`; `subtotal_minor`, `tax_minor`, `total_minor bigint >= 0`; `period_start`, `period_end`, `issue_date`, `due_date date`; `place_of_supply_state char(2)`; `gstin_issuer`, `gstin_recipient varchar(15)`; `financial_year varchar(7)`; `e_invoice_status` in `NOT_REQUIRED`, `PENDING`, `REGISTERED`, `FAILED`; `irn char(64) NULL`, `ack_no text`, `ack_date date`, `qr_payload_hash char(64)`; `settlement_hold boolean NOT NULL DEFAULT false`, `hold_reason_code text NULL`, `hold_set_at timestamptz NULL`; `created_at`, `updated_at`, `issued_at`; checks totals, parties differ, period; partial unique invoice number. |
 | `invoice_line` | `id uuid PK`; `invoice_id FK`; `line_no integer > 0`; `rating_result_id uuid FK rating_result UNIQUE`; `description`; `hsn_sac varchar(8)`; `quantity numeric(18,4) >= 0`; `unit`; `unit_price_minor`; `taxable_amount_minor >= 0`; `tax_minor >= 0`; `total_minor >= 0`; check taxable + tax = total; unique `(invoice_id, line_no)`. |
 | `invoice_tax_line` | `id bigserial PK`; `invoice_id FK`; `tax_rate_id FK tax_rate`; `tax_kind` in `CGST`, `SGST`, `IGST`, `CESS`; `rate_bp integer 0..10000`; `taxable_amount_minor >= 0`; `tax_amount_minor >= 0`; index invoice. |
 | `credit_note` | `id uuid PK`; `credit_note_no text NULL`; `invoice_id FK`; `status` in `DRAFT`, `ISSUED`; `currency char(3)`; `subtotal_minor`, `tax_minor`, `total_minor >= 0`; `reason_code`; `reason_detail`; `financial_year`; `irn char(64) NULL`; `created_at`, `issued_at`; check totals; partial unique number per invoice. |
 
 Issued invoice financial columns and issued credit-note financial columns are immutable by
-trigger. Deleting an issued document is rejected. Credit note totals must not exceed the
-remaining creditable amount of the invoice; the service enforces the rule and the
-integration test proves it.
+trigger. Deleting an issued document is rejected. The settlement-hold columns are the only
+issued-invoice columns a dispute may change, and only through `billing`'s public hold
+commands. Credit note totals must not exceed the remaining creditable amount of the invoice;
+the service enforces the rule and the integration test proves it.
 
 ### 3.9 reconciliation
 
@@ -196,9 +197,12 @@ integration test proves it.
 | `dispute_evidence` | `id uuid PK`; `dispute_id FK`; `evidence_type`; `storage_key`; `file_name`; `file_size_bytes bigint >= 0`; `content_hash char(64)`; `added_by`, `added_at`; index dispute. |
 | `dispute_event` | `id bigserial PK`; `dispute_id FK`; `from_status`, `to_status`; `actor`; `reason`; `occurred_at`; index `(dispute_id, occurred_at)`. |
 
-`dispute.subject_id` is validated by the application through the subject module's public
-query API. There is no cross-module foreign key to reconciliation, because `dispute` does
-not depend on `reconciliation`.
+`dispute.subject_id` is validated through the public query API only for subject types owned
+by a module that `dispute` may depend on (`CDR`, `RATING_RESULT`, `INVOICE`). A
+`RECONCILIATION_EXCEPTION` or `SETTLEMENT` subject is an opaque UUID supplied by the caller;
+the dispute records the reference and does not read the owning table. There is no
+cross-module foreign key to reconciliation or settlement, and no financial effect follows
+from an unverified subject.
 
 ### 3.11 settlement
 
@@ -233,6 +237,7 @@ not depend on `reconciliation`.
 | Owner | May reference | Must not reference |
 |---|---|---|
 | `partners` | none (except its own tables) | any domain module |
+| `iam` | `partners` | `tariff`, `ingestion`, `rating`, `billing`, `ledger` |
 | `tariff` | `partners` | `ingestion`, `rating`, `billing`, `ledger` |
 | `ingestion` | `partners` | `tariff`, `rating`, `billing`, `ledger` |
 | `rating` | `partners`, `tariff`, `ingestion` | `billing`, `ledger` |

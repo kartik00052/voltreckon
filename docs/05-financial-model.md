@@ -247,8 +247,9 @@ account balances equal zero for the selected entity and period. *Check:* `TrialB
 multi-currency run is rejected until the T2 trigger. *Check:* netting validation test.
 
 **MONEY-035** Eligibility: issued invoices and credit notes with issue date on or before the
-period end, not fully settled, and not held by an open dispute. A held amount stays out of
-netting and appears as an exception. *Check:* eligibility matrix test.
+period end, not fully settled, and not held by an open dispute. The hold is an invoice-level
+flag owned by `billing` and set through its public command; a held invoice stays out of netting
+and appears as an exception. *Check:* eligibility matrix test.
 
 **MONEY-036** Net amount is signed from the CPO's perspective: positive means the eMSP owes
 the CPO; negative means the CPO owes the eMSP. The statement states the perspective.
